@@ -16,6 +16,7 @@ public class ConfigurationHandler
     private ConfigEntry<int> ConfigRoundTimerLengthInSeconds;
     private ConfigEntry<int> ConfigPropHeatUpdateIntervalInSeconds;
     private ConfigEntry<int> ConfigPropHeatActivationPercent;
+    private ConfigEntry<int> ConfigHunterBlackoutDurationInSeconds;
     private ConfigEntry<int> ConfigIncorrectShotHealthPenalty;
     private ConfigEntry<int> ConfigMaxNumberOfDecoysCanPlace;
     private ConfigEntry<int> ConfigMaxNumberOfDisguisesTaken;
@@ -26,6 +27,7 @@ public class ConfigurationHandler
     public int RoundTimerLengthInSeconds  => ConfigRoundTimerLengthInSeconds.Value;
     public int PropHeatUpdateIntervalInSeconds => ConfigPropHeatUpdateIntervalInSeconds.Value;
     public int PropHeatActivationPercent => ConfigPropHeatActivationPercent.Value;
+    public int HunterBlackoutDurationInSeconds => ConfigHunterBlackoutDurationInSeconds.Value;
     public int IncorrectShotHealthPenalty => ConfigIncorrectShotHealthPenalty.Value;
     public int MaxNumberOfDecoysCanPlace => ConfigMaxNumberOfDecoysCanPlace.Value;
     public int MaxNumberOfDisguisesTaken => ConfigMaxNumberOfDisguisesTaken.Value;
@@ -63,7 +65,7 @@ public class ConfigurationHandler
             "Whether or not the round timer is activated",
             () => ConfigChanged?.Invoke()
         );
-        
+
         ConfigRoundTimerLengthInSeconds = Bind(
             Section,
             "RoundTimerLength",
@@ -71,6 +73,15 @@ public class ConfigurationHandler
             "The length in seconds of the round timer",
             () => ConfigChanged?.Invoke(),
             v => Math.Clamp(v, 120, 3600)
+        );
+
+        ConfigHunterBlackoutDurationInSeconds = Bind(
+            Section,
+            "HunterBlackoutDuration",
+            30,
+            "How long, in seconds, hunters have a black screen and disabled minimap render after spawning",
+            () => ConfigChanged?.Invoke(),
+            v => Math.Clamp(v, 0, ConfigRoundTimerLengthInSeconds.Value)
         );
     }
 

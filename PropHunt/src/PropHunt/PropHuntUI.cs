@@ -21,12 +21,14 @@ public class PropHuntUI : MonoBehaviour
     private RenderTexture minimapTexture;
     private RawImage minimapImage;
     private RawImage propHeatImage;
+    private Image hunterBlackoutImage;
     private RectTransform propHeatRect;
     private Texture2D propHeatTexture;
 
     private TMP_Text teamNameText;
     private TMP_Text leftInfoText;
     private TMP_Text rightInfoText;
+    private TMP_Text hunterBlackoutTimerText;
 
     private Transform player;
 
@@ -36,8 +38,12 @@ public class PropHuntUI : MonoBehaviour
     private float nextPropHeatUpdateTime;
     private float propHeatInitializationTime;
     private float propHeatActivationTime;
+    private float hunterBlackoutStartTime;
+    private int hunterBlackoutHoleIndex = -1;
+    private bool wasHunter;
 
     private const float PropHeatSize = 108f;
+    private const float HunterBlackoutFadeDuration = 1.5f;
     private const int PanelBackgroundStencil = 16;
     private const float PanelOuterBackgroundOutset = 2f;
     private const float PanelOuterBackgroundBottomOutset = 3f;
@@ -56,6 +62,7 @@ public class PropHuntUI : MonoBehaviour
         FindPlayer();
 
         CreateCanvas();
+        CreateHunterBlackoutOverlay();
         CreatePanel();
         CreateRows();
         CreateMinimapCamera();
@@ -90,6 +97,7 @@ public class PropHuntUI : MonoBehaviour
                 rightInfoText.text = $"Decoys: {localPropHuntPlayer.maxNumberOfDecoysCanPlace - localPropHuntPlayer.numberOfDecoysPlaced}/{localPropHuntPlayer.maxNumberOfDecoysCanPlace}";
             }
 
+            UpdateHunterBlackout(isHunter);
             UpdatePropHeatIndicator(isHunter);
         }
     }
@@ -143,6 +151,24 @@ public class PropHuntUI : MonoBehaviour
         scaler.matchWidthOrHeight = 0.5f;
 
         canvasObj.AddComponent<GraphicRaycaster>();
+    }
+
+    private void CreateHunterBlackoutOverlay()
+    {
+        GameObject blackoutObj = new GameObject("Hunter_Blackout_Overlay");
+        blackoutObj.transform.SetParent(canvas.transform, false);
+
+        hunterBlackoutImage = blackoutObj.AddComponent<Image>();
+        hunterBlackoutImage.color = Color.black;
+        hunterBlackoutImage.raycastTarget = false;
+
+        RectTransform rt = hunterBlackoutImage.rectTransform;
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+
+        blackoutObj.SetActive(false);
     }
 
     private void CreatePanel()
@@ -433,8 +459,27 @@ public class PropHuntUI : MonoBehaviour
         mapRt.offsetMax = new Vector2(-sideInset, height + bottomInset);
 
         CreatePropHeatIndicator(mapObj.transform);
+        CreateHunterBlackoutTimer(maskObj.transform, height);
 
         maskObj.transform.SetSiblingIndex(1);
+    }
+
+    private void CreateHunterBlackoutTimer(Transform parent, float height)
+    {
+        hunterBlackoutTimerText = CreateText(parent, "", 72, TextAlignmentOptions.Center);
+        hunterBlackoutTimerText.color = Color.black;
+        hunterBlackoutTimerText.gameObject.SetActive(false);
+
+        RectTransform rt = hunterBlackoutTimerText.rectTransform;
+        rt.anchorMin = new Vector2(0f, 0f);
+        rt.anchorMax = new Vector2(1f, 0f);
+        rt.pivot = new Vector2(0.5f, 0f);
+        rt.anchoredPosition = Vector2.zero;
+        rt.sizeDelta = new Vector2(0f, height);
+        rt.offsetMin = new Vector2(4f, 3f);
+        rt.offsetMax = new Vector2(-4f, height + 3f);
+
+        hunterBlackoutTimerText.transform.SetAsLastSibling();
     }
 
     private void CreatePropHeatIndicator(Transform parent)
@@ -575,7 +620,8 @@ public class PropHuntUI : MonoBehaviour
         if (propHeatImage == null || propHeatRect == null)
             return;
 
-        if (!isHunter || PropManager.Instance == null || player == null || Time.time < propHeatActivationTime)
+        if (!isHunter || IsHunterBlackoutVisible() || PropManager.Instance == null || player == null ||
+            Time.time < propHeatActivationTime)
         {
             propHeatImage.gameObject.SetActive(false);
             hasPropHeatDirection = false;
@@ -674,6 +720,81 @@ public class PropHuntUI : MonoBehaviour
             return 5f;
 
         return Mathf.Max(1f, configuration.PropHeatUpdateIntervalInSeconds);
+    }
+
+    private void UpdateHunterBlackout(bool isHunter)
+    {
+        if (hunterBlackoutImage == null)
+            return;
+
+        int duration = GetHunterBlackoutDuration();
+        int currentHoleIndex = CourseManager.CurrentHoleCourseIndex;
+
+        if (isHunter && (!wasHunter || hunterBlackoutHoleIndex != currentHoleIndex))
+        {
+            hunterBlackoutStartTime = Time.time;
+            hunterBlackoutHoleIndex = currentHoleIndex;
+        }
+
+        wasHunter = isHunter;
+
+        if (!isHunter || duration <= 0 || hunterBlackoutHoleIndex != currentHoleIndex)
+        {
+            SetHunterBlackoutAlpha(0f);
+            return;
+        }
+
+        float elapsed = Time.time - hunterBlackoutStartTime;
+        float alpha = 0f;
+
+        if (elapsed < duration)
+        {
+            alpha = 1f;
+        }
+        else if (elapsed < duration + HunterBlackoutFadeDuration)
+        {
+            alpha = 1f - ((elapsed - duration) / HunterBlackoutFadeDuration);
+        }
+
+        SetHunterBlackoutAlpha(alpha);
+    }
+
+    private bool IsHunterBlackoutVisible()
+    {
+        return hunterBlackoutImage != null && hunterBlackoutImage.gameObject.activeSelf;
+    }
+
+    private void SetHunterBlackoutAlpha(float alpha)
+    {
+        bool visible = alpha > 0.001f;
+        hunterBlackoutImage.gameObject.SetActive(visible);
+        hunterBlackoutImage.color = new Color(0f, 0f, 0f, Mathf.Clamp01(alpha));
+        if (visible)
+            hunterBlackoutImage.transform.SetAsFirstSibling();
+
+        if (minimapImage != null)
+            minimapImage.enabled = !visible;
+
+        if (hunterBlackoutTimerText != null)
+        {
+            hunterBlackoutTimerText.gameObject.SetActive(visible);
+            if (visible)
+                hunterBlackoutTimerText.text = Mathf.CeilToInt(GetHunterBlackoutRemainingTime()).ToString();
+        }
+    }
+
+    private float GetHunterBlackoutRemainingTime()
+    {
+        return Mathf.Max(0f, GetHunterBlackoutDuration() - (Time.time - hunterBlackoutStartTime));
+    }
+
+    private int GetHunterBlackoutDuration()
+    {
+        ConfigurationHandler configuration = ConfigurationHandler.Instance;
+        if (configuration == null)
+            return 30;
+
+        return Mathf.Max(0, configuration.HunterBlackoutDurationInSeconds);
     }
 
     private void RefreshPropHeatActivationTime()
