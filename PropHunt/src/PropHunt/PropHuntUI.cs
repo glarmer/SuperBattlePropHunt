@@ -122,6 +122,8 @@ public class PropHuntUI : MonoBehaviour
 
         if (playerObj != null)
             player = playerObj.transform;
+        else if (Camera.main)
+            player =  Camera.main.transform;
         else
             Plugin.Log.LogInfo("Could not find player");
     }
@@ -331,10 +333,10 @@ public class PropHuntUI : MonoBehaviour
         leftInfoText = CreateText(row2.transform, "Props: 0", 22, TextAlignmentOptions.Center);
         AddFlexibleLayout(leftInfoText.gameObject, 1);
 
-        CreateColumnDivider(row2.transform, 1f);
+        CreateColumnDivider(row2.transform, 3f);
 
         rightInfoText = CreateText(row2.transform, "Hunters: 0", 22, TextAlignmentOptions.Center);
-        AddFlexibleLayout(rightInfoText.gameObject, 4);
+        AddFlexibleLayout(rightInfoText.gameObject, 1);
 
         CreateRowDivider(rootPanel, 4f);
 
@@ -359,6 +361,7 @@ public class PropHuntUI : MonoBehaviour
         LayoutElement layout = dividerObj.AddComponent<LayoutElement>();
         layout.preferredHeight = height;
         layout.minHeight = height;
+        layout.minWidth = 4f;
         layout.flexibleWidth = 1f;
 
         return dividerObj;

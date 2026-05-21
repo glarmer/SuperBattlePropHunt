@@ -186,7 +186,7 @@ public class PropManager : MonoBehaviour
         {
             Plugin.Log.LogInfo(
                 $"[PropManager] All hunters died. hunters={hunterCount} deadHunters={_huntersThatHaveDied.Count}. Ending hole");
-            EndHole(false);
+            EndHole(true);
         }
     }
 

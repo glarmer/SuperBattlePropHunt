@@ -31,6 +31,8 @@ public class PropHuntPlayer : MonoBehaviour
 
     private void Start()
     {
+        RespawnHunter();
+        
         playerInfo = transform.GetComponent<PlayerInfo>();
         playerTeam = TeamManager.Instance.EnsurePlayerTeam(playerInfo);
         if (playerInfo.isLocalPlayer) _camera = Camera.main;
@@ -47,6 +49,15 @@ public class PropHuntPlayer : MonoBehaviour
         }
 
         gameObject.AddComponent<PropHuntUI>();
+    }
+    
+    private void RespawnHunter()
+    {
+        if (GameManager.LocalPlayerAsSpectator.isSpectating)
+        {
+            NotifyHunterDeathChanged(false);
+            MatchSetupMenu.Instance.SetPlayerSpectator(GameManager.LocalPlayerAsGolfer, false);
+        }
     }
 
     private void Update()
