@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Gamemode_Lib.Teams;
 using Mirror;
-using PropHunt.Patches;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -10,8 +9,9 @@ namespace PropHunt;
 public class PropManager : MonoBehaviour
 {
     private readonly HashSet<ulong> _originalPropRoster = new();
-    private readonly HashSet<ulong> _propsThatScored = new();
     private readonly HashSet<ulong> _propsThatHaveBeenTagged = new();
+    private readonly HashSet<ulong> _huntersThatHaveDied = new();
+    private bool _hasEndedHole;
 
     public static PropManager Instance;
 
@@ -64,6 +64,9 @@ public class PropManager : MonoBehaviour
 
     public int GetNumberOfHunters()
     {
+        if (TeamManager.Instance == null)
+            return 0;
+
         var totalHunters = 0;
         foreach (var player in TeamManager.Instance.SavedTeamIdByGuid)
         {
@@ -94,9 +97,19 @@ public class PropManager : MonoBehaviour
         return _propsThatHaveBeenTagged.Contains(prop);
     }
 
-    public bool HasPropScored(ulong prop)
+    public int GetNumberOfDeadHunters()
     {
-        return _propsThatScored.Contains(prop);
+        return _huntersThatHaveDied.Count;
+    }
+
+    public int GetNumberOfLivingHunters()
+    {
+        return Mathf.Max(0, GetNumberOfHunters() - GetNumberOfDeadHunters());
+    }
+
+    public bool HasHunterDied(ulong hunter)
+    {
+        return _huntersThatHaveDied.Contains(hunter);
     }
 
     public void Start()
@@ -128,19 +141,20 @@ public class PropManager : MonoBehaviour
 
     private void OnAllPlayersOnOneTeam(TeamData teamData)
     {
-        // Plugin.Log.LogInfo($"[PropManager] OnAllPlayersOnOneTeam(teamId={teamData?.ID}) called");
-        // if (teamData == null) return;
-        // if (teamData.ID == PropHuntGamemode.HUNTER_TEAM)
-        // {
-        //     Plugin.Log.LogInfo(
-        //         $"[PropManager] AllPlayersOnOneTeam -> Hunters. originalPropRoster={_originalPropRoster.Count} tagged={_propsThatHaveBeenTagged.Count} scored={_propsThatScored.Count}. Ending game");
-        //     PropHuntGamemode.EndCurrentHole(true);
-        // }
+        Plugin.Log.LogInfo($"[PropManager] OnAllPlayersOnOneTeam(teamId={teamData?.ID}) called");
+        if (teamData == null) return;
+        if (teamData.ID == PropHuntGamemode.HUNTER_TEAM)
+        {
+            Plugin.Log.LogInfo(
+                $"[PropManager] AllPlayersOnOneTeam -> Hunters. originalPropRoster={_originalPropRoster.Count} tagged={_propsThatHaveBeenTagged.Count} deadHunters={_huntersThatHaveDied.Count}. Ending game");
+            EndHole(true);
+        }
     }
 
     private void OnNextHole(Scene scenePrev, Scene sceneNew)
     {
-        ClearPropsThatHaveScored();
+        _hasEndedHole = false;
+        ClearHuntersThatHaveDied();
     }
 
     public void Update()
@@ -151,14 +165,35 @@ public class PropManager : MonoBehaviour
             SetInitialPropRoster();
         }
 
-        if (_propsThatScored.Count == 0) return;
-        if (_propsThatScored.Count + _propsThatHaveBeenTagged.Count >= _originalPropRoster.Count)
+        TryEndHole();
+    }
+
+    private void TryEndHole()
+    {
+        if (_hasEndedHole)
+            return;
+
+        if (_originalPropRoster.Count > 0 && _propsThatHaveBeenTagged.Count >= _originalPropRoster.Count)
         {
             Plugin.Log.LogInfo(
-                $"[PropManager] All Props accounted for (scored/tagged). originalPropRoster={_originalPropRoster.Count} tagged={_propsThatHaveBeenTagged.Count} scored={_propsThatScored.Count}. Ending hole");
-            PropHuntGamemode.EndCurrentHole(false);
-            ClearPropsThatHaveScored();
+                $"[PropManager] All props caught. originalPropRoster={_originalPropRoster.Count} tagged={_propsThatHaveBeenTagged.Count}. Ending hole");
+            EndHole(true);
+            return;
         }
+
+        int hunterCount = GetNumberOfHunters();
+        if (hunterCount > 0 && _huntersThatHaveDied.Count >= hunterCount)
+        {
+            Plugin.Log.LogInfo(
+                $"[PropManager] All hunters died. hunters={hunterCount} deadHunters={_huntersThatHaveDied.Count}. Ending hole");
+            EndHole(false);
+        }
+    }
+
+    private void EndHole(bool isEndGame)
+    {
+        _hasEndedHole = true;
+        PropHuntGamemode.EndCurrentHole(isEndGame);
     }
 
     public void SetInitialPropRoster()
@@ -192,23 +227,24 @@ public class PropManager : MonoBehaviour
     private void ClearAllProps()
     {
         _propsThatHaveBeenTagged.Clear();
-        _propsThatScored.Clear();
+        _huntersThatHaveDied.Clear();
         _originalPropRoster.Clear();
+        _hasEndedHole = false;
     }
 
 
     //TODO: Add an end conditions module to gamemode lib so this code can be reused
-    public void ClearPropsThatHaveScored()
+    public void ClearHuntersThatHaveDied()
     {
         Plugin.Log.LogInfo(
-            $"[PropManager] ClearPropsThatHaveScored() clearing {_propsThatScored.Count} scored props (tagged={_propsThatHaveBeenTagged.Count} roster={_originalPropRoster.Count})");
-        _propsThatScored.Clear();
+            $"[PropManager] ClearHuntersThatHaveDied() clearing {_huntersThatHaveDied.Count} dead hunters (tagged={_propsThatHaveBeenTagged.Count} roster={_originalPropRoster.Count})");
+        _huntersThatHaveDied.Clear();
     }
 
     public void ClearPropsThatHaveBeenTagged()
     {
         Plugin.Log.LogInfo(
-            $"[PropManager] ClearPropsThatHaveBeenTagged() clearing {_propsThatHaveBeenTagged.Count} tagged props (scored={_propsThatScored.Count} roster={_originalPropRoster.Count})");
+            $"[PropManager] ClearPropsThatHaveBeenTagged() clearing {_propsThatHaveBeenTagged.Count} tagged props (deadHunters={_huntersThatHaveDied.Count} roster={_originalPropRoster.Count})");
         _propsThatHaveBeenTagged.Clear();
     }
 
@@ -220,28 +256,25 @@ public class PropManager : MonoBehaviour
 
     public void AddPropTagged(ulong prop)
     {
-        if (_propsThatScored.Contains(prop))
-        {
-            Plugin.Log.LogInfo($"[PropManager] AddPropTagged(guid={prop}) already scored; skipping");
-            return;
-        }
-
         var added = _propsThatHaveBeenTagged.Add(prop);
         Plugin.Log.LogInfo(
-            $"[PropManager] AddPropTagged(guid={prop}) added={added} tagged={_propsThatHaveBeenTagged.Count} scored={_propsThatScored.Count} roster={_originalPropRoster.Count}");
+            $"[PropManager] AddPropTagged(guid={prop}) added={added} tagged={_propsThatHaveBeenTagged.Count} deadHunters={_huntersThatHaveDied.Count} roster={_originalPropRoster.Count}");
+        TryEndHole();
     }
 
-    public void AddPropScored(ulong prop)
+    public void AddHunterDied(ulong hunter)
     {
-        if (_propsThatHaveBeenTagged.Contains(prop))
-        {
-            Plugin.Log.LogInfo($"[PropManager] AddPropScored(guid={prop}) already tagged; skipping");
-            return;
-        }
-
-        var added = _propsThatScored.Add(prop);
+        var added = _huntersThatHaveDied.Add(hunter);
         Plugin.Log.LogInfo(
-            $"[PropManager] AddPropScored(guid={prop}) added={added} scored={_propsThatScored.Count} tagged={_propsThatHaveBeenTagged.Count} roster={_originalPropRoster.Count}");
+            $"[PropManager] AddHunterDied(guid={hunter}) added={added} deadHunters={_huntersThatHaveDied.Count} hunters={GetNumberOfHunters()} tagged={_propsThatHaveBeenTagged.Count} roster={_originalPropRoster.Count}");
+        TryEndHole();
+    }
+
+    public void RemoveHunterDied(ulong hunter)
+    {
+        var removed = _huntersThatHaveDied.Remove(hunter);
+        Plugin.Log.LogInfo(
+            $"[PropManager] RemoveHunterDied(guid={hunter}) removed={removed} deadHunters={_huntersThatHaveDied.Count} hunters={GetNumberOfHunters()}");
     }
 
     private void OnPlayerShot(PlayerInfo victim, PlayerInfo hitter)
@@ -321,7 +354,7 @@ public class PropManager : MonoBehaviour
         victim.Movement.TryBeginRespawn(false, RespawnTarget.TeeOrCheckpoint);
 
         Plugin.Log.LogInfo(
-            $"[PropManager] Conversion complete. victimGuid={victim.PlayerId.guid} tagged={_propsThatHaveBeenTagged.Count}/{_originalPropRoster.Count} scored={_propsThatScored.Count}/{_originalPropRoster.Count}"
+            $"[PropManager] Conversion complete. victimGuid={victim.PlayerId.guid} tagged={_propsThatHaveBeenTagged.Count}/{_originalPropRoster.Count} deadHunters={_huntersThatHaveDied.Count}/{GetNumberOfHunters()}"
         );
     }
 

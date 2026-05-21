@@ -245,11 +245,13 @@ public class PropHuntPlayer : MonoBehaviour
     {
         hunterHealth = MaxHunterHealth;
         hasTriggeredHunterZeroHealth = false;
+        PropManager.Instance?.RemoveHunterDied(playerInfo.PlayerId.guid);
     }
 
     public void OnHunterHealthDepleted()
     {
         Plugin.Log.LogInfo($"[PropHuntPlayer] Hunter health depleted. player={playerInfo?.name}");
+        PropManager.Instance?.AddHunterDied(playerInfo.PlayerId.guid);
     }
 
     private void OnDestroy()
