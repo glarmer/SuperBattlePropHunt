@@ -48,6 +48,50 @@ public class PropHuntUI : MonoBehaviour
     private const float PanelOuterBackgroundOutset = 2f;
     private const float PanelOuterBackgroundBottomOutset = 3f;
 
+    public static void HideAllCurrentRoundUi()
+    {
+        foreach (PropHuntUI propHuntUi in Resources.FindObjectsOfTypeAll<PropHuntUI>())
+        {
+            if (propHuntUi != null)
+                propHuntUi.HideCurrentRoundUi();
+        }
+    }
+
+    public static void ShowAllCurrentRoundUi()
+    {
+        foreach (PropHuntUI propHuntUi in Resources.FindObjectsOfTypeAll<PropHuntUI>())
+        {
+            if (propHuntUi != null)
+                propHuntUi.ShowCurrentRoundUi();
+        }
+    }
+
+    private void HideCurrentRoundUi()
+    {
+        if (!enabled) return;
+        
+        if (canvas != null)
+            canvas.gameObject.SetActive(false);
+
+        if (minimapCamera != null)
+            minimapCamera.gameObject.SetActive(false);
+
+        enabled = false;
+    }
+
+    private void ShowCurrentRoundUi()
+    {
+        if (enabled) return;
+        
+        if (canvas != null)
+            canvas.gameObject.SetActive(true);
+
+        if (minimapCamera != null)
+            minimapCamera.gameObject.SetActive(true);
+
+        enabled = true;
+    }
+
     private void Awake()
     {
         if (GameManager.LocalPlayerInfo)

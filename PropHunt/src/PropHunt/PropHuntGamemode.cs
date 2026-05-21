@@ -66,6 +66,7 @@ public class PropHuntGamemode : IGamemode
         GamemodeHarmony.PatchAll(typeof(NameTagUiPatches));
         GamemodeHarmony.PatchAll(typeof(HittablePatches));
         GamemodeHarmony.PatchAll(typeof(VFXManagerPatches));
+        GamemodeHarmony.PatchAll(typeof(ScoreboardPatches));
 
         ConfigurationHandler.Instance.SyncConfiguration();
 

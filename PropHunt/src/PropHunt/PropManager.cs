@@ -193,6 +193,7 @@ public class PropManager : MonoBehaviour
     private void EndHole(bool isEndGame)
     {
         _hasEndedHole = true;
+        PropHuntUI.HideAllCurrentRoundUi();
         PropHuntGamemode.EndCurrentHole(isEndGame);
     }
 
