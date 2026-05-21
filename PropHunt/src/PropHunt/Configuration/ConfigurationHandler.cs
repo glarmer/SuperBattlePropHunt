@@ -17,6 +17,8 @@ public class ConfigurationHandler
     private ConfigEntry<int> ConfigPropHeatUpdateIntervalInSeconds;
     private ConfigEntry<int> ConfigPropHeatActivationPercent;
     private ConfigEntry<int> ConfigIncorrectShotHealthPenalty;
+    private ConfigEntry<int> ConfigMaxNumberOfDecoysCanPlace;
+    private ConfigEntry<int> ConfigMaxNumberOfDisguisesTaken;
 
     public event Action ConfigChanged;
 
@@ -25,6 +27,8 @@ public class ConfigurationHandler
     public int PropHeatUpdateIntervalInSeconds => ConfigPropHeatUpdateIntervalInSeconds.Value;
     public int PropHeatActivationPercent => ConfigPropHeatActivationPercent.Value;
     public int IncorrectShotHealthPenalty => ConfigIncorrectShotHealthPenalty.Value;
+    public int MaxNumberOfDecoysCanPlace => ConfigMaxNumberOfDecoysCanPlace.Value;
+    public int MaxNumberOfDisguisesTaken => ConfigMaxNumberOfDisguisesTaken.Value;
 
     public ConfigurationHandler(ConfigFile configFile)
     {
@@ -37,6 +41,7 @@ public class ConfigurationHandler
         BindCustomTimerConfigurations();
         BindHunterHintConfigurations();
         BindHunterHealthConfigurations();
+        BindPropConfigurations();
 
         _bepInExConfigSync = new BepInExConfigSync(
             _config,
@@ -85,7 +90,7 @@ public class ConfigurationHandler
         ConfigPropHeatActivationPercent = Bind(
             Section,
             "PropHeatActivationPercent",
-            60,
+            75,
             "How far through the round timer, as a percentage, before hunter minimap prop heat appears",
             () => ConfigChanged?.Invoke(),
             v => Math.Clamp(v, 0, 100)
@@ -103,6 +108,29 @@ public class ConfigurationHandler
             "How much health a hunter loses when shooting something other than a player",
             () => ConfigChanged?.Invoke(),
             v => Math.Clamp(v, 0, 100)
+        );
+    }
+
+    private void BindPropConfigurations()
+    {
+        const string Section = "Prop Configuration";
+
+        ConfigMaxNumberOfDecoysCanPlace = Bind(
+            Section,
+            "MaxNumberOfDecoysCanPlace",
+            3,
+            "Maximum number of decoys each prop can place",
+            () => ConfigChanged?.Invoke(),
+            v => Math.Clamp(v, 0, 1000)
+        );
+
+        ConfigMaxNumberOfDisguisesTaken = Bind(
+            Section,
+            "MaxNumberOfDisguisesTaken",
+            3,
+            "Maximum number of disguises each prop can take",
+            () => ConfigChanged?.Invoke(),
+            v => Math.Clamp(v, 0, 1000)
         );
     }
 

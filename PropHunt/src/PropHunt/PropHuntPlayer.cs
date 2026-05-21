@@ -32,6 +32,10 @@ public class PropHuntPlayer : MonoBehaviour
         playerInfo = transform.GetComponent<PlayerInfo>();
         playerTeam = TeamManager.Instance.EnsurePlayerTeam(playerInfo);
         if (playerInfo.isLocalPlayer) _camera = Camera.main;
+        ApplyPropConfiguration();
+
+        if (ConfigurationHandler.Instance != null)
+            ConfigurationHandler.Instance.ConfigChanged += OnConfigurationChanged;
 
         foreach (Transform child in transform)
         {
@@ -141,6 +145,21 @@ public class PropHuntPlayer : MonoBehaviour
     {
     }
 
+    private void ApplyPropConfiguration()
+    {
+        ConfigurationHandler configuration = ConfigurationHandler.Instance;
+        if (configuration == null)
+            return;
+
+        maxNumberOfDecoysCanPlace = configuration.MaxNumberOfDecoysCanPlace;
+        maxNumberOfDisguisesTaken = configuration.MaxNumberOfDisguisesTaken;
+    }
+
+    private void OnConfigurationChanged()
+    {
+        ApplyPropConfiguration();
+    }
+
     private void DisguiseSelf()
     {
         if (numberOfDisguisesTaken < maxNumberOfDisguisesTaken)
@@ -226,5 +245,11 @@ public class PropHuntPlayer : MonoBehaviour
     public void OnHunterHealthDepleted()
     {
         Plugin.Log.LogInfo($"[PropHuntPlayer] Hunter health depleted. player={playerInfo?.name}");
+    }
+
+    private void OnDestroy()
+    {
+        if (ConfigurationHandler.Instance != null)
+            ConfigurationHandler.Instance.ConfigChanged -= OnConfigurationChanged;
     }
 }
