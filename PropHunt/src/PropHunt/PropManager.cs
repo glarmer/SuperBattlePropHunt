@@ -277,6 +277,42 @@ public class PropManager : MonoBehaviour
             $"[PropManager] RemoveHunterDied(guid={hunter}) removed={removed} deadHunters={_huntersThatHaveDied.Count} hunters={GetNumberOfHunters()}");
     }
 
+    public void SetHunterDied(ulong hunter, bool isDead)
+    {
+        if (isDead)
+            AddHunterDied(hunter);
+        else
+            RemoveHunterDied(hunter);
+    }
+
+    public static void RegisterNetworkHandlers()
+    {
+        HunterDeathStateMessageSerializer.Register();
+        NetworkServer.RegisterHandler<HunterDeathStateMessage>(OnHunterDeathStateMessage);
+    }
+
+    private static void OnHunterDeathStateMessage(NetworkConnectionToClient sender, HunterDeathStateMessage message)
+    {
+        if (!NetworkServer.active)
+            return;
+
+        if (Instance == null)
+            return;
+
+        if (TeamManager.Instance == null ||
+            !TeamManager.Instance.SavedTeamIdByGuid.TryGetValue(message.HunterGuid, out var teamId) ||
+            teamId != PropHuntGamemode.HUNTER_TEAM)
+        {
+            Plugin.Log.LogInfo(
+                $"[PropManager] Ignoring hunter death update for non-hunter guid={message.HunterGuid}");
+            return;
+        }
+
+        Plugin.Log.LogInfo(
+            $"[PropManager] Server received hunter death update. guid={message.HunterGuid} isDead={message.IsDead}");
+        Instance.SetHunterDied(message.HunterGuid, message.IsDead);
+    }
+
     private void OnPlayerShot(PlayerInfo victim, PlayerInfo hitter)
     {
         if (victim == null || hitter == null) return;
@@ -356,6 +392,8 @@ public class PropManager : MonoBehaviour
         Plugin.Log.LogInfo(
             $"[PropManager] Conversion complete. victimGuid={victim.PlayerId.guid} tagged={_propsThatHaveBeenTagged.Count}/{_originalPropRoster.Count} deadHunters={_huntersThatHaveDied.Count}/{GetNumberOfHunters()}"
         );
+
+        PropHuntGamemode.GrantHunterInfiniteGun(victim);
     }
 
     private System.Collections.IEnumerator RestorePropPlayersBody(PlayerInfo victim)

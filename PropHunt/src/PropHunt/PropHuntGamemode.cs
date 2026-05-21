@@ -81,6 +81,7 @@ public class PropHuntGamemode : IGamemode
         MatchEvents.OnTeeOffFinished += OnTeeOffFinished;
 
         if (!NetworkServer.active) return;
+        PropManager.RegisterNetworkHandlers();
         GrantAllHuntersInfiniteGuns();
     }
 
@@ -112,7 +113,7 @@ public class PropHuntGamemode : IGamemode
         player.gameObject.AddComponent<PropHuntPlayer>();
     }
 
-    private void GrantHunterInfiniteGun(PlayerInfo player)
+    public static void GrantHunterInfiniteGun(PlayerInfo player)
     {
         if (!NetworkServer.active) return;
         if (TeamManager.Instance.EnsurePlayerTeam(player).teamId == HUNTER_TEAM)

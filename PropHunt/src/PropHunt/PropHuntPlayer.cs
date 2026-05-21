@@ -1,5 +1,6 @@
 using Gamemode_Lib;
 using Gamemode_Lib.Teams;
+using Mirror;
 using PropHunt.Configuration;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -18,6 +19,7 @@ public class PropHuntPlayer : MonoBehaviour
 
     private bool isDisguised = false;
     private bool hasTriggeredHunterZeroHealth;
+    private bool hasNotifiedHunterDeath;
 
     public PlayerInfo playerInfo;
     public PlayerTeam playerTeam;
@@ -122,14 +124,16 @@ public class PropHuntPlayer : MonoBehaviour
     {
         if (!playerInfo.isLocalPlayer) return;
         bool isDead = hunterHealth <= 0;
-        if (isDead & !playerInfo.AsSpectator.isSpectating)
+        if (isDead && !playerInfo.AsSpectator.isSpectating)
         {
             hunterHealth = 0;
-            CourseManager.SetPlayerSpectator(playerInfo.AsGolfer, isDead);
+            NotifyHunterDeathChanged(true);
+            MatchSetupMenu.Instance.SetPlayerSpectator(playerInfo.AsGolfer, isDead);
         }
-        else if (!isDead & playerInfo.AsSpectator.isSpectating)
+        else if (!isDead && playerInfo.AsSpectator.isSpectating)
         {
-            CourseManager.SetPlayerSpectator(playerInfo.AsGolfer, isDead);
+            NotifyHunterDeathChanged(false);
+            MatchSetupMenu.Instance.SetPlayerSpectator(playerInfo.AsGolfer, isDead);
         }
     }
 
@@ -245,13 +249,40 @@ public class PropHuntPlayer : MonoBehaviour
     {
         hunterHealth = MaxHunterHealth;
         hasTriggeredHunterZeroHealth = false;
-        PropManager.Instance?.RemoveHunterDied(playerInfo.PlayerId.guid);
+        NotifyHunterDeathChanged(false);
     }
 
     public void OnHunterHealthDepleted()
     {
         Plugin.Log.LogInfo($"[PropHuntPlayer] Hunter health depleted. player={playerInfo?.name}");
-        PropManager.Instance?.AddHunterDied(playerInfo.PlayerId.guid);
+        NotifyHunterDeathChanged(true);
+    }
+
+    private void NotifyHunterDeathChanged(bool isDead)
+    {
+        var hunterGuid = playerInfo.PlayerId.guid;
+
+        if (NetworkServer.active)
+        {
+            hasNotifiedHunterDeath = isDead;
+            PropManager.Instance?.SetHunterDied(hunterGuid, isDead);
+            return;
+        }
+
+        if (!playerInfo.isLocalPlayer || !NetworkClient.active)
+            return;
+
+        if (hasNotifiedHunterDeath == isDead)
+            return;
+
+        hasNotifiedHunterDeath = isDead;
+        HunterDeathStateMessageSerializer.Register();
+
+        NetworkClient.Send(new HunterDeathStateMessage
+        {
+            HunterGuid = hunterGuid,
+            IsDead = isDead
+        });
     }
 
     private void OnDestroy()
