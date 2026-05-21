@@ -121,10 +121,15 @@ public class PropHuntPlayer : MonoBehaviour
     private void LocalHunterUpdate()
     {
         if (!playerInfo.isLocalPlayer) return;
-        if (hunterHealth <= 0)
+        bool isDead = hunterHealth <= 0;
+        if (isDead & !playerInfo.AsSpectator.isSpectating)
         {
             hunterHealth = 0;
-            playerInfo.AsGolfer.CmdFinishHole();
+            CourseManager.SetPlayerSpectator(playerInfo.AsGolfer, isDead);
+        }
+        else if (!isDead & playerInfo.AsSpectator.isSpectating)
+        {
+            CourseManager.SetPlayerSpectator(playerInfo.AsGolfer, isDead);
         }
     }
 
