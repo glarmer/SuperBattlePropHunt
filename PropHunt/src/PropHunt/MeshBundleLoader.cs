@@ -99,7 +99,9 @@ public class MeshBundleLoader
 
     private static string? FindBundlePath()
     {
-        string path = Path.Combine(Paths.PluginPath, "PropHunt", BundleFileName);
+        string assemblyPath = typeof(Plugin).Assembly.Location;
+        string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
+        string path = Path.Join(assemblyDir, BundleFileName);
 
         if (File.Exists(path))
             return path;
