@@ -139,7 +139,7 @@ public class PropManager : MonoBehaviour
         Plugin.Log.LogInfo("[PropManager] Unsubscribed: PlayerTag.PlayerTagged");
     }
 
-    private void OnAllPlayersOnOneTeam(TeamData teamData)
+    private void OnAllPlayersOnOneTeam(Gamemode_Lib.Teams.TeamData teamData)
     {
         Plugin.Log.LogInfo($"[PropManager] OnAllPlayersOnOneTeam(teamId={teamData?.ID}) called");
         if (teamData == null) return;
@@ -388,7 +388,7 @@ public class PropManager : MonoBehaviour
 
         AddPropTagged(victim.PlayerId.guid);
 
-        victim.Movement.TryBeginRespawn(false, RespawnTarget.TeeOrCheckpoint);
+        victim.Movement.TryBeginRespawn(false, RespawnTarget.TeeOrCheckpoint, true);
 
         Plugin.Log.LogInfo(
             $"[PropManager] Conversion complete. victimGuid={victim.PlayerId.guid} tagged={_propsThatHaveBeenTagged.Count}/{_originalPropRoster.Count} deadHunters={_huntersThatHaveDied.Count}/{GetNumberOfHunters()}"

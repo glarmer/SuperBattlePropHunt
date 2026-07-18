@@ -47,7 +47,7 @@ public class TeeOffCountdownPatches
 
         int cutOffIndex = Math.Max(1, (int)Math.Floor(sortedCheckpoints.Count / 2f));
 
-        TeamData teamData = TeamManager.Instance.Teams[PropHuntGamemode.HUNTER_TEAM];
+        Gamemode_Lib.Teams.TeamData teamData = TeamManager.Instance.Teams[PropHuntGamemode.HUNTER_TEAM];
         HashSet<PlayerTeam> sharks = teamData.Members;
 
         List<PlayerTeam> shuffledSharks = sharks
@@ -107,7 +107,8 @@ public class TeeOffCountdownPatches
         {
             GameManager.LocalPlayerInfo.Movement.TryBeginRespawn(
                 false,
-                RespawnTarget.TeeOrCheckpoint
+                RespawnTarget.TeeOrCheckpoint,
+                true
             );
             _lastHoleIndex = currentIndex;
             Plugin.Log.LogInfo("Shark spawn client respawned local shark");

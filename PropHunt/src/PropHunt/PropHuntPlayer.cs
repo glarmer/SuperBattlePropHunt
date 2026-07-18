@@ -56,7 +56,7 @@ public class PropHuntPlayer : MonoBehaviour
         if (GameManager.LocalPlayerAsSpectator.isSpectating)
         {
             NotifyHunterDeathChanged(false);
-            MatchSetupMenu.Instance.SetPlayerSpectator(GameManager.LocalPlayerAsGolfer, false);
+            MatchSetupMenu.SetLocalPlayerSpectator();
         }
     }
 
@@ -139,12 +139,12 @@ public class PropHuntPlayer : MonoBehaviour
         {
             hunterHealth = 0;
             NotifyHunterDeathChanged(true);
-            MatchSetupMenu.Instance.SetPlayerSpectator(playerInfo.AsGolfer, isDead);
+            MatchSetupMenu.SetLocalPlayerSpectator();
         }
         else if (!isDead && playerInfo.AsSpectator.isSpectating)
         {
             NotifyHunterDeathChanged(false);
-            MatchSetupMenu.Instance.SetPlayerSpectator(playerInfo.AsGolfer, isDead);
+            MatchSetupMenu.SetLocalPlayerSpectator();
         }
     }
 

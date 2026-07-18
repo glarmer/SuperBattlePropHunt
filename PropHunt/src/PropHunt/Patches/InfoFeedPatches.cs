@@ -33,10 +33,11 @@ public class InfoFeedPatches
     [HarmonyPatch(typeof(InfoFeed), nameof(InfoFeed.ColorizePlayerName))]
     [HarmonyPrefix]
     public static bool ColorizePlayerName_Prefix(
-        string playerName,
+        ulong playerGuid, 
         Color playerColor,
         ref string __result)
     {
+        string playerName = GameManager.RichTextNoParse(CourseManager.GetPlayerName(playerGuid));
         if (TryGetTeamColorForPlayerName(playerName, out var teamColor))
         {
             __result = $"<color=#{ColorUtility.ToHtmlStringRGB(teamColor)}>{playerName}</color>";

@@ -33,7 +33,8 @@ public class HittablePatches
     }
     
     [HarmonyPostfix]
-    [HarmonyPatch(typeof(Hittable), nameof(Hittable.UserCode_CmdHitWithItem__ItemType__ItemUseId__Vector3__Vector3__Vector3__Single__PlayerInventory__Boolean__Boolean__Boolean__NetworkConnectionToClient))]
+    [HarmonyPatch(typeof(Hittable), 
+        nameof(Hittable.UserCode_CmdHitWithItem__ItemType__ItemUseId__Vector3__Vector3__Vector3__Single__PlayerInventory__Boolean__Boolean__Boolean__Double__UInt64__NetworkConnectionToClient))]
     private static void UserCode_CmdHitWithItem_Postfix(
         Hittable __instance,
         ItemType itemType,
@@ -46,6 +47,8 @@ public class HittablePatches
         bool isReflected,
         bool isInSpecialState,
         bool canHitWithNoUser,
+        double hitTimestamp,
+        ulong itemUseHash,
         NetworkConnectionToClient sender)
     {
         Plugin.Log.LogInfo("UserCode_CmdHitWithItem_Postfix");
